@@ -1,9 +1,7 @@
-# import csv
-# with open('/.../data/CBO2002 - Familia.csv', 'r') as file:
-#     reader = csv.reader(file)
-#     for row in reader:
-#         print(row)
+import pandas as pd
+import os
 
 def find(data):
-    data['occupation'] = 12
+    df = pd.read_csv(os.path.join(os.getcwd(), 'occupations/api/data/CBO2002 - Grande Grupo.csv'), delimiter=';')
+    data['name'] = df["TITULO"][0].strip()
     return data
