@@ -75,6 +75,9 @@ def get_occupation_info(occupation, cbo_code):
     return occupation_salary
 
 def get_occupation_groups(cbo_code):
+    if cbo_code == None:
+        return 4 * [""]
+        
     cbo = str(cbo_code)
 
     big_group = BIG_GROUPS[int(cbo[:1])]
