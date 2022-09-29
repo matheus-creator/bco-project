@@ -8,6 +8,6 @@ def index(request):
     return JsonResponse(occupation_response)
 
 def process_data(request):
-    jsonResponse = json.loads(request.body.decode('utf-8'))
+    jsonResponse = json.loads(request.body.decode("utf-8"))
     occupation = find_occupation.find(jsonResponse)
     return occupation

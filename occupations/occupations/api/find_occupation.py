@@ -29,7 +29,7 @@ def find(data):
     return occupation_response
 
 def read_data(path):
-    return pd.read_csv(os.path.join(os.getcwd(), path), delimiter=';', encoding='ISO-8859-9')
+    return pd.read_csv(os.path.join(os.getcwd(), path), delimiter=";", encoding="ISO-8859-9")
 
 def generate_occupation_groups_dicts():
     global OCCUPATIONS
@@ -38,19 +38,19 @@ def generate_occupation_groups_dicts():
     global SUB_GROUPS
     global FAMILIES
     if OCCUPATIONS == {}:
-        df = read_data('occupations/api/data/CBO2002 - Sinonimo.csv')
+        df = read_data("occupations/api/data/CBO2002 - Sinonimo.csv")
         OCCUPATIONS = generate_occupations_hash_table(df["TITULO"], df["CODIGO"])
 
-        df = read_data('occupations/api/data/CBO2002 - Grande Grupo.csv')
+        df = read_data("occupations/api/data/CBO2002 - Grande Grupo.csv")
         BIG_GROUPS = generate_group_hash_table(df["CODIGO"], df["TITULO"])
 
-        df = read_data('occupations/api/data/CBO2002 - SubGrupo Principal.csv')
+        df = read_data("occupations/api/data/CBO2002 - SubGrupo Principal.csv")
         MAIN_SUB_GROUPS = generate_group_hash_table(df["CODIGO"], df["TITULO"])
 
-        df = read_data('occupations/api/data/CBO2002 - SubGrupo.csv')
+        df = read_data("occupations/api/data/CBO2002 - SubGrupo.csv")
         SUB_GROUPS = generate_group_hash_table(df["CODIGO"], df["TITULO"])
 
-        df = read_data('occupations/api/data/CBO2002 - Familia.csv')
+        df = read_data("occupations/api/data/CBO2002 - Familia.csv")
         FAMILIES = generate_group_hash_table(df["CODIGO"], df["TITULO"])
 
 def get_cbo_code(occupation):

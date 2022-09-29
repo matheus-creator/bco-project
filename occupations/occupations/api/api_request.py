@@ -10,6 +10,7 @@ def make_request(url):
 def extract_salary(response_string):
     salary = ""
     found_salary = False
+    # extract salary based on the html of the response
     for s in response_string.split("\n"):
         if not found_salary:
             if s.startswith(BASE_STRING_TO_FIND_SALARY):
