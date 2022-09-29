@@ -11,7 +11,7 @@ def extract_salary(response_string):
     salary = ""
     found_salary = False
     for s in response_string.split("\n"):
-        if not found_salary:            
+        if not found_salary:
             if s.startswith(BASE_STRING_TO_FIND_SALARY):
                 salary = split_string_to_get_salary(s)
                 found_salary = True
@@ -25,5 +25,5 @@ def extract_salary(response_string):
 def split_string_to_get_salary(string):
     temp_string = string.split(">")
     temp_string = temp_string[1].split("<")
-    
+
     return temp_string[0]
