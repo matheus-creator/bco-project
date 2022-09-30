@@ -1,24 +1,28 @@
 import os
 import pandas as pd
 import unidecode
+from fuzzywuzzy import process, fuzz
 from .utils import PUNCTUATION, INEXISTENT_SALARY_MESSAGE
 from .api_request import make_request
 from .assemble_strings import assemble_key_for_maping, assemble_api_string
 
 OCCUPATIONS = {}
+CBO_INDEX = {}
 BIG_GROUPS = {}
 MAIN_SUB_GROUPS = {}
 SUB_GROUPS = {}
 FAMILIES = {}
 
-def find(data):
+def find(occupation, type_of_match):
     global OCCUPATIONS
-    generate_occupation_groups_dicts()
-    cbo_code = get_cbo_code(data["occupation"])
-    occupation_salary = get_occupation_info(data["occupation"], cbo_code)
+    generate_occupation_groups_dicts(type_of_match)
+    cbo_code, closest_occupation_found = get_cbo_and_used_occupation(occupation, type_of_match)
+    occupation_salary = get_occupation_info(closest_occupation_found, cbo_code)
     occupation_groups = get_occupation_groups(cbo_code)
     occupation_response = {
-        "cbo_code": cbo_code, 
+        "requested_occupation": occupation,
+        "closest_occupation_found": closest_occupation_found,
+        "cbo_code": cbo_code,
         "salary": occupation_salary,
         "big_group": occupation_groups[0],
         "main_sub_group": occupation_groups[1],
@@ -31,15 +35,20 @@ def find(data):
 def read_data(path):
     return pd.read_csv(os.path.join(os.getcwd(), path), delimiter=";", encoding="ISO-8859-9")
 
-def generate_occupation_groups_dicts():
+def generate_occupation_groups_dicts(type_of_match):
     global OCCUPATIONS
+    global CBO_INDEX
     global BIG_GROUPS
     global MAIN_SUB_GROUPS
     global SUB_GROUPS
     global FAMILIES
     if OCCUPATIONS == {}:
         df = read_data("occupations/api/data/CBO2002 - Sinonimo.csv")
-        OCCUPATIONS = generate_occupations_hash_table(df["TITULO"], df["CODIGO"])
+        if type_of_match == "exact":
+            OCCUPATIONS = generate_occupations_hash_table(df["TITULO"], df["CODIGO"])
+        else:
+            OCCUPATIONS = {key: value for key, value in enumerate(df["TITULO"])}
+            CBO_INDEX = {key: value for key, value in enumerate(df["CODIGO"])}
 
         df = read_data("occupations/api/data/CBO2002 - Grande Grupo.csv")
         BIG_GROUPS = generate_group_hash_table(df["CODIGO"], df["TITULO"])
@@ -53,16 +62,25 @@ def generate_occupation_groups_dicts():
         df = read_data("occupations/api/data/CBO2002 - Familia.csv")
         FAMILIES = generate_group_hash_table(df["CODIGO"], df["TITULO"])
 
-def get_cbo_code(occupation):
+def get_cbo_and_used_occupation(occupation, type_of_match):
     global OCCUPATIONS
-    key_to_find = assemble_key_for_maping(occupation)
+    global CBO_INDEX
     cbo_code = ""
-    try:
-        cbo_code = OCCUPATIONS[key_to_find]
-    except KeyError:
-        cbo_code = None
+    closest_occupation_found = ""
+    if type_of_match == "exact":
+        closest_occupation_found = occupation
+        key_to_find = assemble_key_for_maping(occupation)
+        try:
+            cbo_code = str(OCCUPATIONS[key_to_find])
+        except KeyError:
+            cbo_code = None
+    else:
+        result = process.extract(occupation, OCCUPATIONS, limit=1, scorer=fuzz.ratio)
+        closest_occupation_found = result[0][0]
+        index_of_cbo = result[0][2]
+        cbo_code = str(CBO_INDEX[index_of_cbo])
 
-    return cbo_code
+    return cbo_code, closest_occupation_found
 
 def get_occupation_info(occupation, cbo_code):
     if cbo_code == None:
@@ -77,13 +95,13 @@ def get_occupation_info(occupation, cbo_code):
 def get_occupation_groups(cbo_code):
     if cbo_code == None:
         return 4 * [""]
-        
-    cbo = str(cbo_code)
+    elif len(cbo_code) == 5:
+        cbo_code = "0" + cbo_code
 
-    big_group = BIG_GROUPS[int(cbo[:1])]
-    main_sub_group = MAIN_SUB_GROUPS[int(cbo[:2])]
-    sub_group = SUB_GROUPS[int(cbo[:3])]
-    family = FAMILIES[int(cbo[:4])]
+    big_group = BIG_GROUPS[int(cbo_code[:1])]
+    main_sub_group = MAIN_SUB_GROUPS[int(cbo_code[:2])]
+    sub_group = SUB_GROUPS[int(cbo_code[:3])]
+    family = FAMILIES[int(cbo_code[:4])]
 
     return [big_group, main_sub_group, sub_group, family]
 

@@ -9,5 +9,5 @@ def index(request):
 
 def process_data(request):
     jsonResponse = json.loads(request.body.decode("utf-8"))
-    occupation = find_occupation.find(jsonResponse)
+    occupation = find_occupation.find(jsonResponse["occupation"], jsonResponse["type_of_match"])
     return occupation
