@@ -9,5 +9,8 @@ def index(request):
 
 def process_data(request):
     jsonResponse = json.loads(request.body.decode("utf-8"))
-    occupation = find_occupation.find(jsonResponse["occupation"], jsonResponse["type_of_match"])
+    try:
+        occupation = find_occupation.find(jsonResponse["occupation"], jsonResponse["type_of_match"])
+    except KeyError:
+        occupation = {"error": "Fields are invalid"}
     return occupation

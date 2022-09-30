@@ -3,25 +3,36 @@ import pandas as pd
 import unidecode
 from fuzzywuzzy import process, fuzz
 from .utils import PUNCTUATION, INEXISTENT_SALARY_MESSAGE
+from .binary_search import binary_search
 from .api_request import make_request
 from .assemble_strings import assemble_key_for_maping, assemble_api_string
 
 OCCUPATIONS = {}
-CBO_INDEX = {}
+OCCUPATIONS_FUZZY = {}
+OCCUPATIONS_FUZZY_CBO_INDEX = {}
 BIG_GROUPS = {}
 MAIN_SUB_GROUPS = {}
 SUB_GROUPS = {}
 FAMILIES = {}
 
 def find(occupation, type_of_match):
-    global OCCUPATIONS
-    generate_occupation_groups_dicts(type_of_match)
-    cbo_code, closest_occupation_found = get_cbo_and_used_occupation(occupation, type_of_match)
-    occupation_salary = get_occupation_info(closest_occupation_found, cbo_code)
+    generate_occupation_groups_dicts()
+    cbo_code = ""
+    occupation_found = ""
+    # check if the occupation is already the cbo
+    if str(occupation).isdigit():
+        cbo_code = str(occupation)
+        occupation_found = get_occupation_by_cbo(cbo_code)
+        if occupation_found == "":
+            cbo_code = None
+    else:
+        cbo_code, occupation_found = get_cbo_and_closest_occupation(occupation, type_of_match)
+
+    occupation_salary = get_occupation_info(occupation_found, cbo_code)
     occupation_groups = get_occupation_groups(cbo_code)
     occupation_response = {
         "requested_occupation": occupation,
-        "closest_occupation_found": closest_occupation_found,
+        "occupation_found": occupation_found,
         "cbo_code": cbo_code,
         "salary": occupation_salary,
         "big_group": occupation_groups[0],
@@ -35,20 +46,19 @@ def find(occupation, type_of_match):
 def read_data(path):
     return pd.read_csv(os.path.join(os.getcwd(), path), delimiter=";", encoding="ISO-8859-9")
 
-def generate_occupation_groups_dicts(type_of_match):
+def generate_occupation_groups_dicts():
     global OCCUPATIONS
-    global CBO_INDEX
+    global OCCUPATIONS_FUZZY
+    global OCCUPATIONS_FUZZY_CBO_INDEX
     global BIG_GROUPS
     global MAIN_SUB_GROUPS
     global SUB_GROUPS
     global FAMILIES
     if OCCUPATIONS == {}:
         df = read_data("occupations/api/data/CBO2002 - Sinonimo.csv")
-        if type_of_match == "exact":
-            OCCUPATIONS = generate_occupations_hash_table(df["TITULO"], df["CODIGO"])
-        else:
-            OCCUPATIONS = {key: value for key, value in enumerate(df["TITULO"])}
-            CBO_INDEX = {key: value for key, value in enumerate(df["CODIGO"])}
+        OCCUPATIONS = generate_occupations_hash_table(df["TITULO"], df["CODIGO"])
+        OCCUPATIONS_FUZZY = {key: value for key, value in enumerate(df["TITULO"])}
+        OCCUPATIONS_FUZZY_CBO_INDEX = {key: value for key, value in enumerate(df["CODIGO"])}
 
         df = read_data("occupations/api/data/CBO2002 - Grande Grupo.csv")
         BIG_GROUPS = generate_group_hash_table(df["CODIGO"], df["TITULO"])
@@ -62,9 +72,18 @@ def generate_occupation_groups_dicts(type_of_match):
         df = read_data("occupations/api/data/CBO2002 - Familia.csv")
         FAMILIES = generate_group_hash_table(df["CODIGO"], df["TITULO"])
 
-def get_cbo_and_used_occupation(occupation, type_of_match):
+def get_occupation_by_cbo(cbo_code):
+    global OCCUPATIONS_FUZZY
+    df = read_data("occupations/api/data/CBO2002 - Sinonimo.csv")
+    index_of_occupation = binary_search(df["CODIGO"], int(cbo_code))
+    if index_of_occupation == -1:
+        return ""
+        
+    return OCCUPATIONS_FUZZY[index_of_occupation]
+
+def get_cbo_and_closest_occupation(occupation, type_of_match):
     global OCCUPATIONS
-    global CBO_INDEX
+    global OCCUPATIONS_FUZZY_CBO_INDEX
     cbo_code = ""
     closest_occupation_found = ""
     if type_of_match == "exact":
@@ -75,10 +94,10 @@ def get_cbo_and_used_occupation(occupation, type_of_match):
         except KeyError:
             cbo_code = None
     else:
-        result = process.extract(occupation, OCCUPATIONS, limit=1, scorer=fuzz.ratio)
+        result = process.extract(occupation, OCCUPATIONS_FUZZY, limit=1, scorer=fuzz.ratio)
         closest_occupation_found = result[0][0]
         index_of_cbo = result[0][2]
-        cbo_code = str(CBO_INDEX[index_of_cbo])
+        cbo_code = str(OCCUPATIONS_FUZZY_CBO_INDEX[index_of_cbo])
 
     return cbo_code, closest_occupation_found
 
