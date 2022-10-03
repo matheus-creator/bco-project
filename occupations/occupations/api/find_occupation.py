@@ -26,7 +26,7 @@ def find(occupation, type_of_match):
     else:
         cbo_code, occupation_found = get_cbo_and_closest_occupation(occupation, type_of_match)
 
-    occupation_salary = get_occupation_info(occupation_found, cbo_code)
+    occupation_salary = get_occupation_salary(occupation_found, cbo_code)
     occupation_groups = get_occupation_groups(cbo_code)
     occupation_response = {
         "requested_occupation": occupation,
@@ -97,7 +97,7 @@ def get_cbo_and_closest_occupation(occupation, type_of_match):
 
     return cbo_code, closest_occupation_found
 
-def get_occupation_info(occupation, cbo_code):
+def get_occupation_salary(occupation, cbo_code):
     if cbo_code == None:
         return INEXISTENT_SALARY_MESSAGE
     # generate api string
