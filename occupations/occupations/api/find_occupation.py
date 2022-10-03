@@ -17,8 +17,6 @@ FAMILIES = {}
 
 def find(occupation, type_of_match):
     generate_occupation_groups_dicts()
-    cbo_code = ""
-    occupation_found = ""
     # check if the occupation is already the cbo
     if str(occupation).isdigit():
         cbo_code = str(occupation)
@@ -84,8 +82,6 @@ def get_occupation_by_cbo(cbo_code):
 def get_cbo_and_closest_occupation(occupation, type_of_match):
     global OCCUPATIONS
     global OCCUPATIONS_FUZZY_CBO_INDEX
-    cbo_code = ""
-    closest_occupation_found = ""
     if type_of_match == "exact":
         closest_occupation_found = occupation
         key_to_find = assemble_key_for_maping(occupation)
@@ -130,7 +126,6 @@ def generate_occupations_hash_table(keys, values):
     keys_without_blank_space = [key.replace(" ", "").lower() for key in keys]
     # remove punctuation, accent and other special characters
     keys_without_punctuation = []
-    temp_key = ""
     for key in keys_without_blank_space:
         temp_key = unidecode.unidecode(key)
         for c in PUNCTUATION:
